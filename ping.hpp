@@ -3,13 +3,11 @@
 #define WIN32_LEAN_AND_MEAN
 #include <winsock2.h>
 
-// ICMP packet types
 #define ICMP_ECHO_REPLY 0
 #define ICMP_DEST_UNREACH 3
 #define ICMP_TTL_EXPIRE 11
 #define ICMP_ECHO_REQUEST 8
 
-// Minimum ICMP packet size, in bytes
 #define ICMP_MIN 8
 
 #ifdef _MSC_VER

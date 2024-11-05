@@ -16,13 +16,10 @@ int allocate_buffers(ICMPHeader*& send_buf, IPHeader*& recv_buf,
 
 int main(int argc, char* argv[])
 {
-    // Init some variables at top, so they aren't skipped by the
-    // cleanup routines.
     int seq_no = 0;
     ICMPHeader* send_buf = 0;
     IPHeader* recv_buf = 0;
 
-    // Did user pass enough parameters?
     if (argc < 2) {
         cerr << "usage: " << argv[0] << " <host> [data_size] [ttl]" <<
                 endl;
@@ -34,7 +31,6 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    // Figure out how big to make the ping packet
     int packet_size = DEFAULT_PACKET_SIZE;
     int ttl = DEFAULT_TTL;
     if (argc > 2) {
@@ -59,7 +55,6 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    // Set up for pinging
     SOCKET sd;
     sockaddr_in dest, source;
     printf("Argv 1 is %s\n", argv[1]);
@@ -74,13 +69,8 @@ int main(int argc, char* argv[])
     // Send the ping and receive the reply
     if (send_ping(sd, dest, send_buf, packet_size) >= 0) {
         while (1) {
-            // Receive replies until we either get a successful read,
-            // or a fatal error occurs.
             if (recv_ping(sd, source, recv_buf, MAX_PING_PACKET_SIZE) <
                     0) {
-                // Pull the sequence number out of the ICMP header.  If 
-                // it's bad, we just complain, but otherwise we take 
-                // off, because the read failed for some reason.
                 unsigned short header_len = recv_buf->h_len * 4;
                 ICMPHeader* icmphdr = (ICMPHeader*)
                         ((char*)recv_buf + header_len);
@@ -93,8 +83,6 @@ int main(int argc, char* argv[])
                 }
             }
             if (decode_reply(recv_buf, packet_size, &source) != -2) {
-                // Success or fatal error (as opposed to a minor error) 
-                // so take off.
                 break;
             }
         }

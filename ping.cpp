@@ -24,21 +24,16 @@ int setup_for_ping(char* host, int ttl, SOCKET& sd, sockaddr_in& dest)
         return -1;
     }
 
-    // Initialize the destination host info block
     memset(&dest, 0, sizeof(dest));
 
-    // Turn first passed parameter into an IP address to ping
     unsigned int addr = inet_addr(host);
     if (addr != INADDR_NONE) {
-        // It was a dotted quad number, so save result
         dest.sin_addr.s_addr = addr;
         dest.sin_family = AF_INET;
     }
     else {
-        // Not in dotted quad form, so try and look it up
         hostent* hp = gethostbyname(host);
         if (hp != 0) {
-            // Found an address for that host, so save it
             memcpy(&(dest.sin_addr), hp->h_addr, hp->h_length);
             dest.sin_family = hp->h_addrtype;
         }
@@ -53,11 +48,8 @@ int setup_for_ping(char* host, int ttl, SOCKET& sd, sockaddr_in& dest)
 }
 
 
-
-
 void init_ping_packet(ICMPHeader* icmp_hdr, int packet_size, int seq_no)
 {
-    // Set up the packet's fields
     icmp_hdr->type = ICMP_ECHO_REQUEST;
     icmp_hdr->code = 0;
     icmp_hdr->checksum = 0;
@@ -75,7 +67,6 @@ void init_ping_packet(ICMPHeader* icmp_hdr, int packet_size, int seq_no)
         datapart += sizeof(deadmeat);
     }
 
-    // Calculate a checksum on the result
     icmp_hdr->checksum = ip_checksum((USHORT*)icmp_hdr, packet_size);
 }
 
@@ -83,7 +74,6 @@ void init_ping_packet(ICMPHeader* icmp_hdr, int packet_size, int seq_no)
 int send_ping(SOCKET sd, const sockaddr_in& dest, ICMPHeader* send_buf,
         int packet_size)
 {
-    // Send the ping packet in send_buf as-is
     cout << "Sending " << packet_size << " bytes to " << 
             inet_ntoa(dest.sin_addr) << "..." << flush;
     int bwrote = sendto(sd, (char*)send_buf, packet_size, 0, 
@@ -103,7 +93,6 @@ int send_ping(SOCKET sd, const sockaddr_in& dest, ICMPHeader* send_buf,
 int recv_ping(SOCKET sd, sockaddr_in& source, IPHeader* recv_buf, 
         int packet_size)
 {
-    // Wait for the ping reply
     int fromlen = sizeof(source);
     int bread = recvfrom(sd, (char*)recv_buf, 
             packet_size + sizeof(IPHeader), 0,
@@ -125,11 +114,9 @@ int recv_ping(SOCKET sd, sockaddr_in& source, IPHeader* recv_buf,
 
 int decode_reply(IPHeader* reply, int bytes, sockaddr_in* from) 
 {
-    // Skip ahead to the ICMP header within the IP packet
     unsigned short header_len = reply->h_len * 4;
     ICMPHeader* icmphdr = (ICMPHeader*)((char*)reply + header_len);
 
-    // Make sure the reply is sane
     if (bytes < header_len + ICMP_MIN) {
         cerr << "too few bytes from " << inet_ntoa(from->sin_addr) << 
                 endl;
@@ -146,28 +133,19 @@ int decode_reply(IPHeader* reply, int bytes, sockaddr_in* from)
             }
             return -1;
         }
-        // If "TTL expired", fall through.  Next test will fail if we
-        // try it, so we need a way past it.
     }
     else if (icmphdr->id != (USHORT)GetCurrentProcessId()) {
-        // Must be a reply for another pinger running locally, so just
-        // ignore it.
         return -2;
     }
 
-    // Figure out how far the packet travelled
     int nHops = int(256 - reply->ttl);
     if (nHops == 192) { 
-        // TTL came back 64, so ping was probably to a host on the
-        // LAN -- call it a single hop.
         nHops = 1;
     }
     else if (nHops == 128) {
-        // Probably localhost
         nHops = 0;
     }
 
-    // Okay, we ran the gamut, so the packet must be legal -- dump it
     cout << endl << bytes << " bytes from " << 
             inet_ntoa(from->sin_addr) << ", icmp_seq " << 
             icmphdr->seq << ", ";
